@@ -20,44 +20,6 @@
 
 namespace Botan::TLS {
 
-namespace {
-
-std::vector<uint8_t> message(Connection_Side side, const Transcript_Hash& hash)
-   {
-   std::vector<uint8_t> msg(64, 0x20);
-   msg.reserve(64 + 32 + 1 + hash.size());
-
-   const std::string context_string = (side == Botan::TLS::Connection_Side::SERVER)
-                                      ? "TLS 1.3, server CertificateVerify"
-                                      : "TLS 1.3, client CertificateVerify";
-
-   msg.insert(msg.end(), context_string.cbegin(), context_string.cend());
-   msg.push_back(0x00);
-
-   msg.insert(msg.end(), hash.cbegin(), hash.cend());
-   return msg;
-   }
-
-Signature_Scheme choose_signature_scheme(
-      const Private_Key& key,
-      const std::vector<Signature_Scheme>& allowed_schemes,
-      const std::vector<Signature_Scheme>& peer_allowed_schemes)
-   {
-   for(Signature_Scheme scheme : allowed_schemes)
-      {
-      if(scheme.is_available()
-         && scheme.is_suitable_for(key)
-         && value_exists(peer_allowed_schemes, scheme))
-         {
-         return scheme;
-         }
-      }
-
-   throw TLS_Exception(Alert::HANDSHAKE_FAILURE, "Failed to agree on a signature algorithm");
-   }
-
-}
-
 /*
 * Create a new Certificate Verify message for TLS 1.2
 */
@@ -144,6 +106,44 @@ bool Certificate_Verify_12::verify(const X509_Certificate& cert,
    }
 
 #if defined(BOTAN_HAS_TLS_13)
+
+namespace {
+
+std::vector<uint8_t> message(Connection_Side side, const Transcript_Hash& hash)
+   {
+   std::vector<uint8_t> msg(64, 0x20);
+   msg.reserve(64 + 32 + 1 + hash.size());
+
+   const std::string context_string = (side == Botan::TLS::Connection_Side::SERVER)
+                                      ? "TLS 1.3, server CertificateVerify"
+                                      : "TLS 1.3, client CertificateVerify";
+
+   msg.insert(msg.end(), context_string.cbegin(), context_string.cend());
+   msg.push_back(0x00);
+
+   msg.insert(msg.end(), hash.cbegin(), hash.cend());
+   return msg;
+   }
+
+Signature_Scheme choose_signature_scheme(
+      const Private_Key& key,
+      const std::vector<Signature_Scheme>& allowed_schemes,
+      const std::vector<Signature_Scheme>& peer_allowed_schemes)
+   {
+   for(Signature_Scheme scheme : allowed_schemes)
+      {
+      if(scheme.is_available()
+         && scheme.is_suitable_for(key)
+         && value_exists(peer_allowed_schemes, scheme))
+         {
+         return scheme;
+         }
+      }
+
+   throw TLS_Exception(Alert::HANDSHAKE_FAILURE, "Failed to agree on a signature algorithm");
+   }
+
+}
 
 /*
 * Create a new Certificate Verify message for TLS 1.3
