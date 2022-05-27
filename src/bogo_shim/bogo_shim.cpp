@@ -82,6 +82,7 @@ std::string map_to_bogo_error(const std::string& e)
          { "Application data before handshake done", ":APPLICATION_DATA_INSTEAD_OF_HANDSHAKE:" },
          { "Bad Hello_Request, has non-zero size", ":BAD_HELLO_REQUEST:" },
          { "Bad code for TLS alert level", ":UNKNOWN_ALERT_TYPE:" },
+         { "Bad encoding on signature algorithms extension", ":DECODE_ERROR:" },
          { "Bad extension size", ":DECODE_ERROR:" },
          { "Bad length in hello verify request", ":DECODE_ERROR:" },
          { "Bad lengths in DTLS header", ":BAD_HANDSHAKE_RECORD:" },
@@ -99,6 +100,8 @@ std::string map_to_bogo_error(const std::string& e)
          { "Certificate key type did not match ciphersuite", ":WRONG_CERTIFICATE_TYPE:" },
          { "Certificate usage constraints do not allow this ciphersuite", ":KEY_USAGE_BIT_INCORRECT:" },
          { "Certificate: Message malformed", ":DECODE_ERROR:" },
+         { "Certificate_Request context must be empty in the main handshake", ":DECODE_ERROR:" },
+         { "Certificate_Request message did not provide a signature_algorithms extension", ":DECODE_ERROR:" },
          { "Channel_Impl_12::key_material_export cannot export during renegotiation", "failed to export keying material" },
          { "Client cert verify failed", ":BAD_SIGNATURE:" },
          { "Client certificate does not support signing", ":KEY_USAGE_BIT_INCORRECT:" },
@@ -123,6 +126,8 @@ std::string map_to_bogo_error(const std::string& e)
          { "Empty ALPN protocol not allowed", ":PARSE_TLSEXT:" },
          { "Encoding error: Cannot encode PSS string, output length too small", ":NO_COMMON_SIGNATURE_ALGORITHMS:" },
          { "Expected TLS but got a record with DTLS version", ":WRONG_VERSION_NUMBER:" },
+         { "Failed to agree on a signature algorithm", ":NO_COMMON_SIGNATURE_ALGORITHMS:" },
+         { "Failed to negotiate a common signature algorithm for client authentication", ":NO_COMMON_SIGNATURE_ALGORITHMS:" },
          { "Finished message didn't verify", ":DIGEST_CHECK_FAILED:" },
          { "Have data remaining in buffer after ClientHello", ":EXCESS_HANDSHAKE_DATA:" },
          { "Have data remaining in buffer after Finished", ":EXCESS_HANDSHAKE_DATA:" },
@@ -199,6 +204,7 @@ std::string map_to_bogo_error(const std::string& e)
          { "Unexpected extension received", ":UNEXPECTED_EXTENSION:" },
          { "server hello must contain key exchange information", ":MISSING_KEY_SHARE:"},
          { "Peer sent duplicated extensions", ":DUPLICATE_EXTENSION:" },
+         { "Peer sent signature algorithm that is not suitable for TLS 1.3", ":WRONG_SIGNATURE_TYPE:" },
          { "Server sent bad values for secure renegotiation", ":RENEGOTIATION_MISMATCH:" },
          { "Server version DTLS v1.0 is unacceptable by policy", ":UNSUPPORTED_PROTOCOL:" },
          { "Server version TLS v1.0 is unacceptable by policy", ":UNSUPPORTED_PROTOCOL:" },
@@ -828,10 +834,13 @@ class Shim_Policy final : public Botan::TLS::Policy
             std::vector<std::string> pref_hash;
             for(size_t pref : m_args.get_int_vec_opt("signing-prefs"))
                {
-               const auto scheme = static_cast<Botan::TLS::Signature_Scheme>(pref);
-               if(Botan::TLS::signature_scheme_is_known(scheme) == false)
+               const Botan::TLS::Signature_Scheme scheme(pref);
+               if(!scheme.is_available())
+                  {
+                  shim_log("skipping inavailable but preferred signature scheme: " + std::to_string(pref));
                   continue;
-               pref_hash.push_back(Botan::TLS::hash_function_of_scheme(scheme));
+                  }
+               pref_hash.push_back(scheme.hash_function_name());
                }
 
             if(m_args.flag_set("server"))
@@ -863,7 +872,7 @@ class Shim_Policy final : public Botan::TLS::Policy
             std::vector<Botan::TLS::Signature_Scheme> schemes;
             for(size_t pref : m_args.get_int_vec_opt("verify-prefs"))
                {
-               schemes.push_back(static_cast<Botan::TLS::Signature_Scheme>(pref));
+               schemes.emplace_back(static_cast<uint16_t>(pref));
                }
 
             return schemes;
@@ -879,14 +888,21 @@ class Shim_Policy final : public Botan::TLS::Policy
             std::vector<Botan::TLS::Signature_Scheme> schemes;
             for(size_t pref : m_args.get_int_vec_opt("signing-prefs"))
                {
-               schemes.push_back(static_cast<Botan::TLS::Signature_Scheme>(pref));
+               schemes.emplace_back(static_cast<uint16_t>(pref));
                }
 
-            // BoGo gets sad if these are not included in our signature_algorithms extension
+            // The relevant tests (*-Sign-Negotiate-*) want to configure a preference
+            // for the scheme of our signing operation (-signing-prefs). However, this
+            // policy method (`allowed_signature_schemes`) also restricts the peer's
+            // signing operation. If we weren't to add a few 'common' algorithms, initial
+            // security parameter negotiation would fail.
+            // By placing the BoGo-configured scheme first we make sure our implementation
+            // meets BoGo's expectation when it is our turn to sign.
             if(!m_args.flag_set("server"))
                {
-               schemes.push_back(Botan::TLS::Signature_Scheme::RSA_PKCS1_SHA256);
-               schemes.push_back(Botan::TLS::Signature_Scheme::ECDSA_SHA256);
+               schemes.emplace_back(Botan::TLS::Signature_Scheme::RSA_PKCS1_SHA256);
+               schemes.emplace_back(Botan::TLS::Signature_Scheme::RSA_PSS_SHA256);
+               schemes.emplace_back(Botan::TLS::Signature_Scheme::ECDSA_SHA256);
                }
 
             return schemes;
@@ -1387,14 +1403,17 @@ class Shim_Callbacks final : public Botan::TLS::Callbacks
          {
          if(m_args.option_used("expect-peer-signature-algorithm"))
             {
-            const auto scheme = static_cast<Botan::TLS::Signature_Scheme>(m_args.get_int_opt("expect-peer-signature-algorithm"));
-            if(scheme != Botan::TLS::Signature_Scheme::NONE)
-               {
-               const std::string exp_emsa = Botan::TLS::padding_string_for_scheme(scheme);
-               if(emsa != exp_emsa)
-                  shim_exit_with_error("Unexpected signature scheme got " + emsa + " expected " + exp_emsa);
-               }
+            const Botan::TLS::Signature_Scheme scheme(
+                  static_cast<uint16_t>(m_args.get_int_opt("expect-peer-signature-algorithm")));
+
+            if(!scheme.is_available())
+               shim_exit_with_error(std::string("Unsupported signature scheme provided by BoGo: ") + scheme.to_string());
+
+            const std::string exp_emsa = scheme.padding_string();
+            if(emsa != exp_emsa)
+               shim_exit_with_error("Unexpected signature scheme got " + emsa + " expected " + exp_emsa);
             }
+
          return Botan::TLS::Callbacks::tls_verify_message(key, emsa, format, msg, sig);
          }
 

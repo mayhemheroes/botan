@@ -216,11 +216,11 @@ uint16_t choose_ciphersuite(
 
          for(Signature_Scheme scheme : client_sig_methods)
             {
-            if(signature_scheme_is_known(scheme) == false)
+            if(!scheme.is_available())
                continue;
 
-            if(signature_algorithm_of_scheme(scheme) == suite->sig_algo() &&
-               policy.allowed_signature_hash(hash_function_of_scheme(scheme)))
+            if(scheme.algorithm_name() == suite->sig_algo() &&
+               policy.allowed_signature_hash(scheme.hash_function_name()))
                {
                we_support_some_hash_by_client = true;
                }
@@ -916,7 +916,7 @@ void Server_Impl_12::session_create(Server_Handshake_State& pending_state,
    if(request_cert && pending_state.ciphersuite().signature_used())
       {
       pending_state.cert_req(
-         new Certificate_Req(pending_state.handshake_io(),
+         new Certificate_Request_12(pending_state.handshake_io(),
                              pending_state.hash(),
                              policy(),
                              client_auth_CAs));
