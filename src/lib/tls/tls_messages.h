@@ -606,6 +606,8 @@ class BOTAN_UNSTABLE_API Certificate_Request_12 final : public Handshake_Message
       std::vector<Signature_Scheme> m_schemes;
    };
 
+#if defined(BOTAN_HAS_TLS_13)
+
 class BOTAN_UNSTABLE_API Certificate_Request_13 final : public Handshake_Message
    {
    public:
@@ -624,6 +626,8 @@ class BOTAN_UNSTABLE_API Certificate_Request_13 final : public Handshake_Message
       std::vector<uint8_t> m_context;
       Extensions m_extensions;
    };
+
+#endif
 
 class BOTAN_UNSTABLE_API Certificate_Verify : public Handshake_Message
    {
