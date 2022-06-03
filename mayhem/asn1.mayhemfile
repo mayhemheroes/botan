@@ -1,0 +1,4 @@
+project: PROJECT
+target: asn1
+cmds:
+- cmd: /out/asn1
