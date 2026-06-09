@@ -1,0 +1,5 @@
+project: botan
+target: crl
+cmds:
+  - cmd: /mayhem/crl
+    libfuzzer: true

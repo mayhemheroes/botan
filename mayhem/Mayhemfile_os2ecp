@@ -1,0 +1,5 @@
+project: botan
+target: os2ecp
+cmds:
+  - cmd: /mayhem/os2ecp
+    libfuzzer: true

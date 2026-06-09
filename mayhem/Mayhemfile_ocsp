@@ -1,0 +1,5 @@
+project: botan
+target: ocsp
+cmds:
+  - cmd: /mayhem/ocsp
+    libfuzzer: true

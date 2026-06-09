@@ -1,0 +1,5 @@
+project: botan
+target: pkcs8
+cmds:
+  - cmd: /mayhem/pkcs8
+    libfuzzer: true

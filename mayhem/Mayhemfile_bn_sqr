@@ -1,0 +1,5 @@
+project: botan
+target: bn_sqr
+cmds:
+  - cmd: /mayhem/bn_sqr
+    libfuzzer: true

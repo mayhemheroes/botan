@@ -1,0 +1,5 @@
+project: botan
+target: barrett
+cmds:
+  - cmd: /mayhem/barrett
+    libfuzzer: true

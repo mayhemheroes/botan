@@ -1,0 +1,5 @@
+project: botan
+target: asn1
+cmds:
+  - cmd: /mayhem/asn1
+    libfuzzer: true

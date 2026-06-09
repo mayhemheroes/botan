@@ -1,0 +1,5 @@
+project: botan
+target: tls_server
+cmds:
+  - cmd: /mayhem/tls_server
+    libfuzzer: true

@@ -1,0 +1,5 @@
+project: botan
+target: ecc_p521
+cmds:
+  - cmd: /mayhem/ecc_p521
+    libfuzzer: true

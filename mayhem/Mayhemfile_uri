@@ -1,0 +1,5 @@
+project: botan
+target: uri
+cmds:
+  - cmd: /mayhem/uri
+    libfuzzer: true

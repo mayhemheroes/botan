@@ -1,0 +1,5 @@
+project: botan
+target: oaep
+cmds:
+  - cmd: /mayhem/oaep
+    libfuzzer: true

@@ -1,0 +1,5 @@
+project: botan
+target: mp_redc_crandall
+cmds:
+  - cmd: /mayhem/mp_redc_crandall
+    libfuzzer: true
