@@ -1,0 +1,5 @@
+project: botan
+target: pow_mod
+cmds:
+  - cmd: /mayhem/pow_mod
+    libfuzzer: true

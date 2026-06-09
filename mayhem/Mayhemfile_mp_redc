@@ -1,0 +1,5 @@
+project: botan
+target: mp_redc
+cmds:
+  - cmd: /mayhem/mp_redc
+    libfuzzer: true

@@ -1,0 +1,5 @@
+project: botan
+target: tls_13_handshake_layer
+cmds:
+  - cmd: /mayhem/tls_13_handshake_layer
+    libfuzzer: true

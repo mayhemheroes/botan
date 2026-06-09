@@ -1,0 +1,5 @@
+project: botan
+target: ecc_bp384
+cmds:
+  - cmd: /mayhem/ecc_bp384
+    libfuzzer: true

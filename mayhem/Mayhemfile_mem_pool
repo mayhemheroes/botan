@@ -1,0 +1,5 @@
+project: botan
+target: mem_pool
+cmds:
+  - cmd: /mayhem/mem_pool
+    libfuzzer: true

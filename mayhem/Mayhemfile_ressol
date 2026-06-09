@@ -1,0 +1,5 @@
+project: botan
+target: ressol
+cmds:
+  - cmd: /mayhem/ressol
+    libfuzzer: true

@@ -1,0 +1,5 @@
+project: botan
+target: ecc_numsp512
+cmds:
+  - cmd: /mayhem/ecc_numsp512
+    libfuzzer: true

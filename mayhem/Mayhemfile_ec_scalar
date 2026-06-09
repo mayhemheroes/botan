@@ -1,0 +1,5 @@
+project: botan
+target: ec_scalar
+cmds:
+  - cmd: /mayhem/ec_scalar
+    libfuzzer: true

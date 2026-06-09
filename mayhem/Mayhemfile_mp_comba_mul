@@ -1,0 +1,5 @@
+project: botan
+target: mp_comba_mul
+cmds:
+  - cmd: /mayhem/mp_comba_mul
+    libfuzzer: true

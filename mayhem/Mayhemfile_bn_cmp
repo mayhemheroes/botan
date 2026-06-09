@@ -1,0 +1,5 @@
+project: botan
+target: bn_cmp
+cmds:
+  - cmd: /mayhem/bn_cmp
+    libfuzzer: true

@@ -1,0 +1,5 @@
+project: botan
+target: invert
+cmds:
+  - cmd: /mayhem/invert
+    libfuzzer: true

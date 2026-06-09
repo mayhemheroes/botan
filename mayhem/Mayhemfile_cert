@@ -1,0 +1,5 @@
+project: botan
+target: cert
+cmds:
+  - cmd: /mayhem/cert
+    libfuzzer: true

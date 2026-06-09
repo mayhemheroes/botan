@@ -1,0 +1,5 @@
+project: botan
+target: mode_padding
+cmds:
+  - cmd: /mayhem/mode_padding
+    libfuzzer: true

@@ -1,0 +1,5 @@
+project: botan
+target: ipv4
+cmds:
+  - cmd: /mayhem/ipv4
+    libfuzzer: true

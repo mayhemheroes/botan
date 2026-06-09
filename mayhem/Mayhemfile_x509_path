@@ -1,0 +1,5 @@
+project: botan
+target: x509_path
+cmds:
+  - cmd: /mayhem/x509_path
+    libfuzzer: true
